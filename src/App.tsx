@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGravitySensor } from './hooks/useGravitySensor';
+import { InstallBanner } from './components/InstallBanner';
 
 const App = () => {
   const { face, orientation, hasPermission, requestPermission, setManual } = useGravitySensor();
@@ -89,6 +90,7 @@ const App = () => {
         >
           Start Session
         </button>
+        <InstallBanner />
       </div>
     );
   }
@@ -193,6 +195,8 @@ const App = () => {
           </div>
         ))}
       </div>
+
+      <InstallBanner />
     </div>
   );
 };
