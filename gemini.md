@@ -5,6 +5,7 @@ This file contains custom instructions, rules, and context for the AI assistant 
 ## Project Context
 - **Project:** Gravitational Pomodoro
 - **Stack:** React, Vite, Tailwind CSS v4
+- **Native Bridge:** Capacitor.js
 
 Gravitational Pomodoro (Project Overview)
 
