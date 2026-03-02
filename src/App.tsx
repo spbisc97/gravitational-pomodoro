@@ -108,43 +108,48 @@ const App = () => {
         </div>
       </div>
 
-      {/* Center: timer + indicators (takes remaining space, vertically centered) */}
+      {/* Center: timer + indicators — rotates with device tilt */}
       <div className="flex-1 flex flex-col items-center justify-center">
-
-        {/* Tilt indicators */}
-        <div className="flex items-end gap-10 mb-6">
-          <TiltIndicator label="Work" symbol="◂" active={face === 'LEFT'} color="#ef4444" />
-          <TiltIndicator label="Pause" symbol="▴" active={face === 'UP'} color="#64748b" />
-          <TiltIndicator label="Break" symbol="▸" active={face === 'RIGHT'} color="#34d399" />
-        </div>
-
-        {/* Mode label */}
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent }} />
-          <span className="text-[11px] uppercase tracking-[0.3em] text-white/40">
-            {isRunning ? `${mode}` : `Paused · ${mode}`}
-          </span>
-        </div>
-
-        {/* Timer — the hero */}
         <div
-          onClick={() => setIsRunning(r => !r)}
-          className="cursor-pointer select-none active:scale-95 transition-all duration-300"
+          className="flex flex-col items-center justify-center w-72 h-72 rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
+          style={{ transform: `rotate(${-orientation.gamma}deg)` }}
         >
-          <span
-            className="font-black leading-none tracking-tight block transition-all duration-500"
-            style={{
-              fontSize: isRunning ? 'clamp(5rem, 22vw, 9rem)' : 'clamp(3.5rem, 16vw, 6rem)',
-              color: isRunning ? accent : 'rgba(255,255,255,0.2)',
-              textShadow: isRunning ? `0 0 40px ${accent}40` : 'none',
-            }}
+
+          {/* Tilt indicators */}
+          <div className="flex items-end gap-8 mb-4">
+            <TiltIndicator label="Work" symbol="◂" active={face === 'LEFT'} color="#ef4444" />
+            <TiltIndicator label="Pause" symbol="▴" active={face === 'UP'} color="#64748b" />
+            <TiltIndicator label="Break" symbol="▸" active={face === 'RIGHT'} color="#34d399" />
+          </div>
+
+          {/* Mode label */}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent }} />
+            <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">
+              {isRunning ? `${mode}` : `Paused · ${mode}`}
+            </span>
+          </div>
+
+          {/* Timer — the hero */}
+          <div
+            onClick={() => setIsRunning(r => !r)}
+            className="cursor-pointer select-none active:scale-95 transition-all duration-300"
           >
-            {fmt(seconds)}
-          </span>
+            <span
+              className="font-black leading-none tracking-tight block transition-all duration-500"
+              style={{
+                fontSize: isRunning ? 'clamp(3.5rem, 16vw, 5rem)' : 'clamp(2.5rem, 12vw, 4rem)',
+                color: isRunning ? accent : 'rgba(255,255,255,0.2)',
+                textShadow: isRunning ? `0 0 40px ${accent}40` : 'none',
+              }}
+            >
+              {fmt(seconds)}
+            </span>
+          </div>
         </div>
 
-        {/* Face + angle debug */}
-        <div className="mt-4 flex items-center gap-3 text-white/25">
+        {/* Face + angle debug (outside the rotating circle) */}
+        <div className="mt-6 flex items-center gap-3 text-white/25">
           <span className="text-sm font-bold" style={{ color: accent }}>{face}</span>
           <span className="text-[10px] font-mono">
             α:{Math.round(orientation.alpha)}° β:{Math.round(orientation.beta)}° γ:{Math.round(orientation.gamma)}°
