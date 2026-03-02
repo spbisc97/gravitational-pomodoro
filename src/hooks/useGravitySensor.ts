@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 
 export type Face = 'FRONT' | 'BACK' | 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'UNKNOWN';
 
@@ -6,52 +6,62 @@ interface GravityData {
     g: { x: number; y: number; z: number };
     face: Face;
     orientation: { alpha: number; beta: number; gamma: number };
+    hasPermission: boolean;
+    requestPermission: () => Promise<void>;
+    setManualOrientation: (o: { alpha: number; beta: number; gamma: number }) => void;
 }
 
 // Helper: Convert degrees to radians
 const degToRad = (deg: number) => (deg * Math.PI) / 180;
 
-export const useGravitySensor = (alphaPass = 0.2) => {
-    // We now also track alpha (yaw) for complete quaternion calculation,
-    // though gravity primarily relies on beta & gamma.
-    const [orientation, setOrientation] = useState({ alpha: 0, beta: 0, gamma: 0 });
-    const [hasPermission, setHasPermission] = useState(false);
+export const eulerToGravity = (orientation: { alpha: number, beta: number, gamma: number }) => {
+    const b = degToRad(orientation.beta);
+    const g = degToRad(orientation.gamma);
 
-    // Ref to track stable state for the low-pass filter
+    return {
+        // Tilting left/right mainly affects X
+        x: Math.sin(g) * Math.cos(b),
+
+        // Tilting forward/backward mainly affects Y
+        y: Math.sin(b),
+
+        // Face up / Face down affects Z
+        z: Math.cos(b) * Math.cos(g)
+    };
+};
+
+export const useGravitySensor = (alphaPass = 0.2): GravityData => {
+    const [hasPermission, setHasPermission] = useState(false);
+    const [orientation, setOrientation] = useState({ alpha: 0, beta: 0, gamma: 0 });
+
+    // Low-pass filter for gravity vector
     const lastGRef = useRef<{ x: number, y: number, z: number }>({ x: 0, y: 0, z: 0 });
 
-    // Calculate Gravity Vector g from Quaternions to prevent Gimbal Lock
+    useEffect(() => {
+        if (!hasPermission) return;
+
+        const handleOrientation = (e: DeviceOrientationEvent) => {
+            // Some devices might report null if sensors aren't active yet
+            setOrientation({
+                alpha: e.alpha || 0,
+                beta: e.beta || 0,
+                // Gamma can exceed 90 on some Android devices when flipping over, wrap it or accept it
+                gamma: e.gamma || 0
+            });
+        };
+
+        window.addEventListener('deviceorientation', handleOrientation);
+        return () => window.removeEventListener('deviceorientation', handleOrientation);
+    }, [hasPermission]);
+
+    // Calculate Gravity Vector g from orientation
     const g = useMemo(() => {
-        // 1. Convert Euler angles to Radians
-        const heading = degToRad(orientation.alpha); // Z
-        const attitude = degToRad(orientation.beta);  // X
-        const bank = degToRad(orientation.gamma);     // Y
+        const rawG = eulerToGravity(orientation);
 
-        // 2. Compute Half Angles
-        const c1 = Math.cos(heading / 2);
-        const c2 = Math.cos(attitude / 2);
-        const c3 = Math.cos(bank / 2);
-        const s1 = Math.sin(heading / 2);
-        const s2 = Math.sin(attitude / 2);
-        const s3 = Math.sin(bank / 2);
-
-        // 3. Construct the Quaternion (q = w + xi + yj + zk)
-        // Note: W3C device orientation uses Tait-Bryan angles (Z-X'-Y'')
-        const w = c1 * c2 * c3 - s1 * s2 * s3;
-        const x = s1 * s2 * c3 + c1 * c2 * s3;
-        const y = s1 * c2 * c3 + c1 * s2 * s3;
-        const z = c1 * s2 * c3 - s1 * c2 * s3;
-
-        // 4. Rotate the standard gravity vector (0, 0, 1) by the quaternion
-        // Mathematical equivalent extracting the Z column of the rotation matrix
-        const rawX = 2 * (x * z - w * y);
-        const rawY = 2 * (y * z + w * x);
-        const rawZ = w * w - x * x - y * y + z * z;
-
-        // 5. Apply Low-Pass Filter: g_filtered = alpha * g_new + (1 - alpha) * g_prev
-        const filteredX = alphaPass * rawX + (1 - alphaPass) * lastGRef.current.x;
-        const filteredY = alphaPass * rawY + (1 - alphaPass) * lastGRef.current.y;
-        const filteredZ = alphaPass * rawZ + (1 - alphaPass) * lastGRef.current.z;
+        // Apply Low-Pass Filter: g_filtered = alpha * g_new + (1 - alpha) * g_prev
+        const filteredX = alphaPass * rawG.x + (1 - alphaPass) * lastGRef.current.x;
+        const filteredY = alphaPass * rawG.y + (1 - alphaPass) * lastGRef.current.y;
+        const filteredZ = alphaPass * rawG.z + (1 - alphaPass) * lastGRef.current.z;
 
         const filteredG = { x: filteredX, y: filteredY, z: filteredZ };
         lastGRef.current = filteredG;
@@ -59,45 +69,35 @@ export const useGravitySensor = (alphaPass = 0.2) => {
         return filteredG;
     }, [orientation, alphaPass]);
 
-    // Determine dominant axis (The "Cube Face")
+    // Determine dominant axis (The "Cube Face") intuitively for a user's hand/desk
     const face = useMemo((): Face => {
-        const { x, y, z } = g;
-        const absX = Math.abs(x);
-        const absY = Math.abs(y);
-        const absZ = Math.abs(z);
+        const { beta, gamma } = orientation;
 
-        // Threshold for "flat" or un-oriented states
-        if (absX < 0.2 && absY < 0.2 && absZ < 0.2) return 'UNKNOWN';
+        // If device is roughly flat on a table (face up)
+        if (Math.abs(beta) < 30 && Math.abs(gamma) < 30) return 'FRONT';
 
-        let detected: Face = 'UNKNOWN';
-        if (absX > absY && absX > absZ) detected = x > 0 ? 'RIGHT' : 'LEFT';
-        else if (absY > absX && absY > absZ) detected = y > 0 ? 'DOWN' : 'UP';
-        else detected = z > 0 ? 'FRONT' : 'BACK';
+        // If device is upside down flat on a table (face down)
+        if (Math.abs(beta) > 150) return 'BACK';
 
-        return detected;
-    }, [g]);
+        // Tilted left (gamma approaches -90, e.g., resting on left side)
+        if (gamma < -40) return 'LEFT';
 
-    useEffect(() => {
-        const handleOrientation = (e: DeviceOrientationEvent) => {
-            setOrientation({
-                alpha: e.alpha || 0,
-                beta: e.beta || 0,
-                gamma: e.gamma || 0
-            });
-        };
+        // Tilted right (gamma approaches 90, e.g., resting on right side)
+        if (gamma > 40) return 'RIGHT';
 
-        window.addEventListener('deviceorientation', handleOrientation);
-        return () => window.removeEventListener('deviceorientation', handleOrientation);
-    }, []);
+        // Standing upright (e.g., in a portrait charging dock)
+        if (beta > 40) return 'UP';
+
+        // Upside down portrait
+        if (beta < -40) return 'DOWN';
+
+        return 'UNKNOWN';
+    }, [orientation]);
 
     const requestPermission = async () => {
-        // If not running in a secure context (HTTPS) or on a device with sensors,
-        // DeviceOrientationEvent might be completely undefined.
         if (typeof DeviceOrientationEvent === 'undefined') {
             console.warn("DeviceOrientationEvent is not supported on this device/browser.");
-            alert("Device orientation sensors are not supported or not accessible (requires HTTPS on mobile).");
-            // We set to true anyway so the user can at least see the UI,
-            // even if the sensors won't do anything.
+            alert("Device orientation sensors are not supported (requires HTTPS on mobile).");
             setHasPermission(true);
             return;
         }
@@ -110,16 +110,18 @@ export const useGravitySensor = (alphaPass = 0.2) => {
                 else alert("Permission to access device orientation was denied.");
             } catch (e) {
                 console.error("DeviceOrientation permission error:", e);
-                alert("Error requesting orientation permission. Ensure you are on HTTPS.");
-                // Fallback for development HTTP
+                alert("Error requesting orientation permission. Ensure you are on HTTPS (Try restarting your dev server!).");
                 setHasPermission(true);
             }
         } else {
-            // Non-iOS 13+ devices (Android) don't require explicit user action,
-            // they just start firing the event immediately once we attach the listener.
+            // Non-iOS 13+ devices (Android) don't require explicit user action
             setHasPermission(true);
         }
     };
 
-    return { g, face, hasPermission, requestPermission };
+    const setManualOrientation = (o: { alpha: number; beta: number; gamma: number }) => {
+        setOrientation(o);
+    };
+
+    return { g, face, orientation, hasPermission, requestPermission, setManualOrientation };
 };

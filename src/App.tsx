@@ -20,7 +20,7 @@ import { useGravitySensor } from './hooks/useGravitySensor';
  */
 
 const App: React.FC = () => {
-  const { g, face, hasPermission, requestPermission } = useGravitySensor();
+  const { g, face, orientation, hasPermission, requestPermission, setManualOrientation } = useGravitySensor();
 
   const [isLocked, setIsLocked] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -224,6 +224,32 @@ const App: React.FC = () => {
 
           <div className="mt-8 text-[10px] uppercase tracking-widest opacity-40">
             Total Focus: {formatTime(totalFocusedTime)}
+          </div>
+
+          {/* Debug Sliders — Simulate Device Orientation from Desktop */}
+          <div className="mt-10 w-full bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+            <div className="text-[9px] uppercase tracking-widest opacity-40 font-bold mb-2">🛠 Debug: Simulated Orientation</div>
+            {[
+              { label: 'Alpha (Yaw)', key: 'alpha' as const, min: 0, max: 360 },
+              { label: 'Beta (Pitch)', key: 'beta' as const, min: -180, max: 180 },
+              { label: 'Gamma (Roll)', key: 'gamma' as const, min: -90, max: 90 },
+            ].map(({ label, key, min, max }) => (
+              <div key={key} className="flex items-center gap-3">
+                <label className="text-[10px] uppercase tracking-wider opacity-60 w-28 shrink-0">{label}</label>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  value={orientation[key]}
+                  onChange={(e) => setManualOrientation({ ...orientation, [key]: Number(e.target.value) })}
+                  className="flex-1 accent-indigo-500 h-2 cursor-pointer"
+                />
+                <span className="font-mono text-xs opacity-60 w-12 text-right">{Math.round(orientation[key])}°</span>
+              </div>
+            ))}
+            <div className="text-[9px] font-mono opacity-30 pt-1">
+              Face: <span className="text-indigo-300 font-bold">{face}</span> | g: ({g.x.toFixed(2)}, {g.y.toFixed(2)}, {g.z.toFixed(2)})
+            </div>
           </div>
 
         </div>

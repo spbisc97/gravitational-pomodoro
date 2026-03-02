@@ -82,3 +82,9 @@ Thumbs.db
 
 # Capacitor generated files
 /src/electron
+package-lock.json
+
+
+
+# Key
+*.pem
