@@ -18,7 +18,7 @@ export default defineConfig({
         description: 'Tilt your device to control focus sessions with physical gestures.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
-        display: 'standalone',
+        display: 'fullscreen',
         orientation: 'portrait',
         start_url: '/',
         icons: [
