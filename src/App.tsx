@@ -120,7 +120,7 @@ const App = () => {
       <div className="flex-1 flex flex-col items-center justify-center">
         <div
           className="flex flex-col items-center justify-center w-72 h-72 rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
-          style={{ transform: `rotate(${-gravityAngle}deg)` }}
+          style={{ transform: `rotate(${gravityAngle}deg)` }}
         >
 
           {/* Tilt indicators */}
