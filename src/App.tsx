@@ -100,17 +100,17 @@ const App = () => {
       {/* Center: everything in the rotating circle */}
       <div className="flex-1 flex flex-col items-center justify-center">
         <div
-          className="flex flex-col items-center justify-center w-80 h-80 rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
+          className="flex flex-col items-center justify-center w-[22rem] h-[22rem] rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
           style={{ transform: `rotate(${gravityAngle}deg)` }}
         >
 
           {/* Clock */}
-          <div className="text-[11px] tracking-[0.4em] text-white/15 font-light mb-1">
+          <div className="text-xl tracking-[0.3em] text-white/30 font-light mb-3">
             {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
 
           {/* Cycle dots */}
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2.5 mb-4">
             {[1, 2, 3, 4].map(i => (
               <div
                 key={i}
@@ -124,7 +124,7 @@ const App = () => {
           </div>
 
           {/* Tilt indicators */}
-          <div className="flex items-end gap-7 mb-2">
+          <div className="flex items-end gap-9 mb-3">
             <TiltIndicator label="Work" symbol="◂" active={face === 'LEFT'} color="#ef4444" />
             <TiltIndicator label="Pause" symbol="▴" active={face === 'UP'} color="#64748b" />
             <TiltIndicator label="Break" symbol="▸" active={face === 'RIGHT'} color="#34d399" />
@@ -146,7 +146,7 @@ const App = () => {
             <span
               className="font-black leading-none tracking-tight block transition-all duration-500"
               style={{
-                fontSize: isRunning ? 'clamp(3rem, 14vw, 4.5rem)' : 'clamp(2.2rem, 11vw, 3.5rem)',
+                fontSize: isRunning ? 'clamp(4.5rem, 20vw, 6rem)' : 'clamp(3.5rem, 16vw, 5rem)',
                 color: isRunning ? accent : 'rgba(255,255,255,0.2)',
                 textShadow: isRunning ? `0 0 40px ${accent}40` : 'none',
               }}
