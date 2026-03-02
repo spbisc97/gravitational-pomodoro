@@ -60,12 +60,20 @@ const App = () => {
     return `${Math.floor(a / 60).toString().padStart(2, '0')}:${(a % 60).toString().padStart(2, '0')}`;
   };
 
+  // Compute true gravity angle projected onto the screen plane
+  const betaRad = (orientation.beta * Math.PI) / 180;
+  const gammaRad = (orientation.gamma * Math.PI) / 180;
+  // Gravity components in screen coordinates (x = right, y = down)
+  const gx = -Math.sin(gammaRad);
+  const gy = Math.sin(betaRad) * Math.cos(gammaRad);
+  // Angle of gravity vector on screen (0° = pointing down)
+  const gravityAngle = Math.atan2(gx, gy) * (180 / Math.PI);
+
   // Theme colors
   const isWork = mode === 'WORK';
   const accent = isRunning
     ? isWork ? '#ef4444' : '#34d399'
     : '#64748b';
-
   // --- Permission screen ---
   if (!hasPermission) {
     return (
@@ -112,7 +120,7 @@ const App = () => {
       <div className="flex-1 flex flex-col items-center justify-center">
         <div
           className="flex flex-col items-center justify-center w-72 h-72 rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
-          style={{ transform: `rotate(${-orientation.gamma}deg)` }}
+          style={{ transform: `rotate(${-gravityAngle}deg)` }}
         >
 
           {/* Tilt indicators */}
