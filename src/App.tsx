@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import {
   Target, Coffee, RotateCcw, Lock, Unlock,
   Clock, Activity, ChevronLeft, ChevronRight, Box
@@ -12,60 +13,7 @@ import {
  * - Upright (g_y > 0.6): NEUTRAL / CLOCK
  */
 
-type Face = 'FRONT' | 'BACK' | 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'UNKNOWN';
-
-const useGravitySensor = () => {
-  const [orientation, setOrientation] = useState({ beta: 0, gamma: 0 });
-  const [hasPermission, setHasPermission] = useState(false);
-
-  // Calculate Gravity Vector g from Euler angles
-  const g = useMemo(() => {
-    const b = (orientation.beta * Math.PI) / 180;
-    const g_rad = (orientation.gamma * Math.PI) / 180;
-
-    return {
-      x: Math.sin(g_rad) * Math.cos(b),
-      y: -Math.sin(b),
-      z: Math.cos(g_rad) * Math.cos(b)
-    };
-  }, [orientation]);
-
-  // Determine dominant axis (The "Cube Face")
-  const face = useMemo((): Face => {
-    const { x, y, z } = g;
-    const absX = Math.abs(x);
-    const absY = Math.abs(y);
-    const absZ = Math.abs(z);
-
-    if (absX > absY && absX > absZ) return x > 0 ? 'RIGHT' : 'LEFT';
-    if (absY > absX && absY > absZ) return y > 0 ? 'DOWN' : 'UP';
-    return z > 0 ? 'FRONT' : 'BACK';
-  }, [g]);
-
-  const requestPermission = async () => {
-    const req = (DeviceOrientationEvent as any).requestPermission;
-    if (typeof req === 'function') {
-      try {
-        const res = await req();
-        if (res === 'granted') setHasPermission(true);
-      } catch (e) {
-        console.error("Permission denied", e);
-      }
-    } else {
-      setHasPermission(true);
-    }
-  };
-
-  useEffect(() => {
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      setOrientation({ beta: e.beta || 0, gamma: e.gamma || 0 });
-    };
-    window.addEventListener('deviceorientation', handleOrientation);
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, []);
-
-  return { g, face, hasPermission, requestPermission };
-};
+import { useGravitySensor } from './hooks/useGravitySensor';
 
 /**
  * MAIN APPLICATION
@@ -77,11 +25,32 @@ const App: React.FC = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [systemTime, setSystemTime] = useState(new Date());
+
+  // Use localStorage to persist settings between sessions
+  const [timerSettings, _setTimerSettings] = useLocalStorage('gravity-timer-settings', {
+    defaultWorkSeconds: 1500,
+    defaultBreakSeconds: 300
+  });
+
   const [timerState, setTimerState] = useState({
-    workSeconds: 1500,
-    breakSeconds: 300,
+    workSeconds: timerSettings.defaultWorkSeconds,
+    breakSeconds: timerSettings.defaultBreakSeconds,
     mode: 'WORK' as 'WORK' | 'BREAK'
   });
+
+  // Analytics: Track total focus time (in seconds)
+  const [totalFocusedTime, setTotalFocusedTime] = useLocalStorage('gravity-total-focus', 0);
+
+  // Sync state if settings change (only when not running)
+  useEffect(() => {
+    if (!isRunning) {
+      setTimerState(s => ({
+        ...s,
+        workSeconds: timerSettings.defaultWorkSeconds,
+        breakSeconds: timerSettings.defaultBreakSeconds
+      }));
+    }
+  }, [timerSettings, isRunning]);
 
   const wakeLockRef = useRef<any>(null);
 
@@ -128,7 +97,11 @@ const App: React.FC = () => {
           const currentVal = prev.mode === 'WORK' ? prev.workSeconds : prev.breakSeconds;
 
           if (currentVal > 0) {
-            if (prev.mode === 'WORK') newState.workSeconds--;
+            if (prev.mode === 'WORK') {
+              newState.workSeconds--;
+              // Increment focus tracking
+              setTotalFocusedTime(t => t + 1);
+            }
             else newState.breakSeconds--;
           } else {
             notify('done');
@@ -139,7 +112,7 @@ const App: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, notify]);
+  }, [isRunning, notify, setTotalFocusedTime]);
 
   useEffect(() => {
     const t = setInterval(() => setSystemTime(new Date()), 1000);
@@ -234,11 +207,15 @@ const App: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setTimerState(s => ({ ...s, workSeconds: 1500, breakSeconds: 300 }))}
+              onClick={() => setTimerState(s => ({ ...s, workSeconds: timerSettings.defaultWorkSeconds, breakSeconds: timerSettings.defaultBreakSeconds }))}
               className="p-6 rounded-[2rem] bg-white/5 border border-white/10 hover:bg-red-500/20 active:scale-95 transition-all opacity-60 hover:opacity-100"
             >
               <RotateCcw size={22} />
             </button>
+          </div>
+
+          <div className="mt-8 text-[10px] uppercase tracking-widest opacity-40">
+            Total Focus: {formatTime(totalFocusedTime)}
           </div>
 
         </div>
