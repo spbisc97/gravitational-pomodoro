@@ -159,7 +159,15 @@ const App: React.FC = () => {
               {isRunning ? 'Counting Down' : 'Standing By'}
             </div>
 
-            <div className={`transition-all duration-700 font-black leading-none tracking-tighter ${isRunning ? 'text-[12rem] drop-shadow-[0_0_80px_rgba(255,255,255,0.15)]' : 'text-8xl opacity-10 blur-[1px]'}`}>
+            <div
+              onClick={() => {
+                const newRunning = !isRunning;
+                setIsRunning(newRunning);
+                notify(newRunning ? 'start' : 'pause');
+                if (newRunning) requestWakeLock();
+                else wakeLockRef.current?.release();
+              }}
+              className={`cursor-pointer transition-all duration-700 font-black leading-none tracking-tighter hover:scale-105 active:scale-95 ${isRunning ? 'text-[12rem] drop-shadow-[0_0_80px_rgba(255,255,255,0.15)]' : 'text-8xl opacity-10 blur-[1px]'}`}>
               {formatTime(timerState.mode === 'WORK' ? timerState.workSeconds : timerState.breakSeconds)}
             </div>
 

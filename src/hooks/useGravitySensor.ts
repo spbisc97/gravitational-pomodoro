@@ -91,16 +91,32 @@ export const useGravitySensor = (alphaPass = 0.2) => {
     }, []);
 
     const requestPermission = async () => {
+        // If not running in a secure context (HTTPS) or on a device with sensors,
+        // DeviceOrientationEvent might be completely undefined.
+        if (typeof DeviceOrientationEvent === 'undefined') {
+            console.warn("DeviceOrientationEvent is not supported on this device/browser.");
+            alert("Device orientation sensors are not supported or not accessible (requires HTTPS on mobile).");
+            // We set to true anyway so the user can at least see the UI,
+            // even if the sensors won't do anything.
+            setHasPermission(true);
+            return;
+        }
+
         const req = (DeviceOrientationEvent as any).requestPermission;
         if (typeof req === 'function') {
             try {
                 const res = await req();
                 if (res === 'granted') setHasPermission(true);
+                else alert("Permission to access device orientation was denied.");
             } catch (e) {
-                console.error("DeviceOrientation permission denied or error:", e);
+                console.error("DeviceOrientation permission error:", e);
+                alert("Error requesting orientation permission. Ensure you are on HTTPS.");
+                // Fallback for development HTTP
+                setHasPermission(true);
             }
         } else {
-            // Non-iOS 13+ devices don't require explicit user action
+            // Non-iOS 13+ devices (Android) don't require explicit user action,
+            // they just start firing the event immediately once we attach the listener.
             setHasPermission(true);
         }
     };
