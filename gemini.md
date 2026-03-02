@@ -69,4 +69,12 @@ Sensor Logic: Always handle the case where DeviceOrientationEvent might be undef
 
 Physics-First: When suggesting filters or state transitions, provide the mathematical reasoning (e.g., using $\vec{g}$ components) where appropriate.
 
-Styling: Adhere strictly to Tailwind CSS v4 utility classes.- 
+Styling: Adhere strictly to Tailwind CSS v4 utility classes.
+
+## Current State & Notes
+- **Deployment Strategy**: The app is set up as a full-screen PWA deployed to **Vercel**. 
+  - `main` branch acts as the stable production release.
+  - Future work should use feature branches (e.g., `feature/xxx`, `dev`) to leverage Vercel's preview URLs for testing without disrupting the stable PWA installation.
+- **UI Architecture**: Implemented a "Gravitational UI" where the central timer block (clock, cycle dots, tilt indicators, mode label, and timer) is housed within a circular container (`w-[22rem] h-[22rem]`).
+- **Gravity Math**: The circle rotates smoothly (via CSS transition) to align perfectly with the device's true gravity vector. This is calculated using `atan2(gx, gy)` projected from the `beta` and `gamma` Euler angles, ensuring correct rotation regardless of phone pitch.
+- **Next Steps**: Continue polishing the interactions, potentially explore adding Synthetic Feedback (Web Audio / Vibration API, as mentioned in previous plans), and eventually set up the Capacitor/Native Android wrapper if a native `.apk` is preferred over the PWA.
