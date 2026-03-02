@@ -97,34 +97,34 @@ const App = () => {
   return (
     <div className="h-dvh bg-[#0a0e1a] text-white flex flex-col items-center px-6 py-8 overflow-auto">
 
-      {/* Top bar: clock + cycle dots */}
-      <div className="flex flex-col items-center gap-4">
-        <div className="text-base tracking-[0.4em] text-white/20 font-light">
-          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </div>
-        <div className="flex gap-3">
-          {[1, 2, 3, 4].map(i => (
-            <div
-              key={i}
-              className="w-2.5 h-2.5 rounded-full transition-all duration-500"
-              style={{
-                backgroundColor: i <= cycle ? accent : 'rgba(255,255,255,0.08)',
-                boxShadow: i === cycle && isRunning ? `0 0 8px ${accent}` : 'none',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Center: timer + indicators — rotates with device tilt */}
+      {/* Center: everything in the rotating circle */}
       <div className="flex-1 flex flex-col items-center justify-center">
         <div
-          className="flex flex-col items-center justify-center w-72 h-72 rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
+          className="flex flex-col items-center justify-center w-80 h-80 rounded-full ring-1 ring-white/5 transition-transform duration-200 ease-out"
           style={{ transform: `rotate(${gravityAngle}deg)` }}
         >
 
+          {/* Clock */}
+          <div className="text-[11px] tracking-[0.4em] text-white/15 font-light mb-1">
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+
+          {/* Cycle dots */}
+          <div className="flex gap-2 mb-3">
+            {[1, 2, 3, 4].map(i => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full transition-all duration-500"
+                style={{
+                  backgroundColor: i <= cycle ? accent : 'rgba(255,255,255,0.08)',
+                  boxShadow: i === cycle && isRunning ? `0 0 6px ${accent}` : 'none',
+                }}
+              />
+            ))}
+          </div>
+
           {/* Tilt indicators */}
-          <div className="flex items-end gap-8 mb-4">
+          <div className="flex items-end gap-7 mb-2">
             <TiltIndicator label="Work" symbol="◂" active={face === 'LEFT'} color="#ef4444" />
             <TiltIndicator label="Pause" symbol="▴" active={face === 'UP'} color="#64748b" />
             <TiltIndicator label="Break" symbol="▸" active={face === 'RIGHT'} color="#34d399" />
@@ -133,7 +133,7 @@ const App = () => {
           {/* Mode label */}
           <div className="flex items-center gap-2 mb-1">
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent }} />
-            <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">
+            <span className="text-[9px] uppercase tracking-[0.25em] text-white/40">
               {isRunning ? `${mode}` : `Paused · ${mode}`}
             </span>
           </div>
@@ -146,7 +146,7 @@ const App = () => {
             <span
               className="font-black leading-none tracking-tight block transition-all duration-500"
               style={{
-                fontSize: isRunning ? 'clamp(3.5rem, 16vw, 5rem)' : 'clamp(2.5rem, 12vw, 4rem)',
+                fontSize: isRunning ? 'clamp(3rem, 14vw, 4.5rem)' : 'clamp(2.2rem, 11vw, 3.5rem)',
                 color: isRunning ? accent : 'rgba(255,255,255,0.2)',
                 textShadow: isRunning ? `0 0 40px ${accent}40` : 'none',
               }}
