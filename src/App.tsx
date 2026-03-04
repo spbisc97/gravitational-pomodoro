@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useGravitySensor } from './hooks/useGravitySensor';
 import { InstallBanner } from './components/InstallBanner';
+import { useWakeLock } from './hooks/useWakeLock';
+
+const APP_VERSION = __APP_VERSION__;
 
 const App = () => {
   const { face, orientation, hasPermission, requestPermission, setManual } = useGravitySensor();
 
   const [isRunning, setIsRunning] = useState(false);
+  useWakeLock(isRunning);
   const [mode, setMode] = useState<'WORK' | 'BREAK'>('WORK');
   const [seconds, setSeconds] = useState(1500);
   const [cycle, setCycle] = useState(1);  // Current pomodoro cycle (1-4)
@@ -97,7 +101,10 @@ const App = () => {
 
   // --- Main UI ---
   return (
-    <div className="h-dvh bg-[#0a0e1a] text-white flex flex-col items-center px-6 py-8 overflow-auto">
+    <div className="h-dvh bg-[#0a0e1a] text-white flex flex-col items-center px-6 py-8 overflow-auto relative">
+      <div className="absolute top-4 right-4 text-[10px] font-mono text-white/30 select-none pointer-events-none tracking-widest">
+        v{APP_VERSION}
+      </div>
 
       {/* Center: everything in the rotating circle */}
       <div className="flex-1 flex flex-col items-center justify-center">
