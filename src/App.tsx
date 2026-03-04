@@ -21,6 +21,7 @@ const App = () => {
     if (face === 'LEFT' && !isRunning) {
       if (mode !== 'WORK') {
         setMode('WORK');
+        // Only reset to 1500 if we actually transitioned modes
         setSeconds(1500);
       }
       setIsRunning(true);
@@ -28,32 +29,35 @@ const App = () => {
 
     if (face === 'RIGHT' && (mode !== 'BREAK' || !isRunning)) {
       setMode('BREAK');
-      setSeconds(300);
+      setSeconds(cycle === 4 ? 900 : 300); // 15 min long break on 4th cycle, 5 min otherwise
       setIsRunning(true);
     }
 
     if (face === 'UP' && isRunning) {
       setIsRunning(false);
-    }
-  }, [face, hasPermission, isRunning, mode]);
 
-  // Countdown + auto-cycle
+      // If we pause after the Work timer ran past 0 into overtime (negative seconds),
+      // we auto-advance directly into the break state because the user picked up the phone.
+      if (mode === 'WORK' && seconds <= 0) {
+        setMode('BREAK');
+        setSeconds(cycle === 4 ? 900 : 300);
+      }
+    }
+  }, [face, hasPermission, isRunning, mode, seconds, cycle]);
+
+  // Countdown logic
   useEffect(() => {
     if (!isRunning) return;
     const id = setInterval(() => {
       setSeconds(s => {
-        if (s <= 1) {
-          // Timer hit zero — auto-advance
-          if (mode === 'WORK') {
-            setMode('BREAK');
-            return cycle === 4 ? 900 : 300; // 15 min long break on 4th cycle, 5 min otherwise
-          } else {
-            // Break ended → next work cycle
-            setMode('WORK');
-            if (cycle >= 4) setCycle(1); else setCycle(c => c + 1);
-            return 1500;
-          }
+        // Break timers still auto-advance at 0
+        if (s <= 1 && mode === 'BREAK') {
+          setMode('WORK');
+          if (cycle >= 4) setCycle(1); else setCycle(c => c + 1);
+          return 1500;
         }
+
+        // Work timers do NOT auto-advance, they keep counting into negative
         return s - 1;
       });
     }, 1000);
@@ -62,7 +66,8 @@ const App = () => {
 
   const fmt = (s: number) => {
     const a = Math.abs(s);
-    return `${Math.floor(a / 60).toString().padStart(2, '0')}:${(a % 60).toString().padStart(2, '0')}`;
+    const timeStr = `${Math.floor(a / 60).toString().padStart(2, '0')}:${(a % 60).toString().padStart(2, '0')}`;
+    return s < 0 ? `-${timeStr}` : timeStr;
   };
 
   // Compute true gravity angle projected onto the screen plane
