@@ -82,7 +82,10 @@ const App = () => {
   // --- Permission screen ---
   if (!hasPermission) {
     return (
-      <div className="min-h-dvh bg-[#0a0e1a] text-white flex flex-col items-center justify-center gap-8 p-8">
+      <div className="min-h-dvh bg-[#0a0e1a] text-white flex flex-col items-center justify-center gap-8 p-8 relative">
+        <div className="absolute top-4 right-4 text-[10px] font-mono text-white/30 select-none pointer-events-none tracking-widest">
+          v{APP_VERSION}
+        </div>
         <div className="text-7xl">◎</div>
         <div className="text-center">
           <h1 className="text-2xl font-black tracking-tight mb-2">Gravity Pomodoro</h1>
